@@ -3,6 +3,9 @@ import express from "express";
 import connectDB from "./config/db.js";
 import errorHandlerMiddleware from "./middleware/errorHandler.middleware.js";
 
+// Routers
+import eventRouter from "./routes/event.routes.js";
+
 // app config
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -16,6 +19,7 @@ app.get("/", (req, res) => {
   res.send("API is working");
 });
 
+app.use("/api/events", eventRouter);
 app.use(errorHandlerMiddleware);
 
 app.listen(PORT, () => {
