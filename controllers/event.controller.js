@@ -103,6 +103,27 @@ export const cancelRegistration = async (req, res, next) => {
 
 export const listUpcomingEvent = async (req, res, next) => {
   try {
+    const todayDate = new Date();
+    const upcomingEvents = await Event.find({ dateTime: { $gt: todayDate } })
+      .sort({
+        dateTime: 1,
+        "location.city": 1,
+        "location.country": 1,
+      })
+      .lean();
+    if (!upcomingEvents.length) {
+      return next(new ApiError(404, "No upcoming event found"));
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          true,
+          { events: upcomingEvents },
+          "Upcoming events fetched successfully"
+        )
+      );
   } catch (error) {
     console.error(error);
     next(error);
