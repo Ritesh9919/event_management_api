@@ -46,6 +46,43 @@ export const getEventDetails = async (req, res, next) => {
 
 export const registerForEvent = async (req, res, next) => {
   try {
+    const { eventId } = req.params;
+    const { name, email } = req.body;
+    if (!name || !email) {
+      return next(new ApiError(400, "Both fields are required"));
+    }
+
+    const event = await Event.findById(eventId);
+
+    if (!event) {
+      return next(
+        new ApiError(400, `Event with id:${eventId} does not exists`)
+      );
+    }
+
+    let userId;
+    const exists = await User.findOne({ email });
+    if (exists) {
+      userId = exists._id;
+    } else {
+      const user = await User.create({ name, email });
+      userId = user._id;
+    }
+
+    // if user is already registered
+    if (event.registrations.includes(userId)) {
+      return next(new ApiError(400, "User already registered"));
+    }
+
+    // checking capicity limit
+    if (event.registrations.length >= event.capacity) {
+      return next(new ApiError(400, "Event is full"));
+    }
+    event.registrations.push(userId);
+    await event.save();
+    return res
+      .status(201)
+      .json(new ApiResponse(true, {}, "User registered successfully"));
   } catch (error) {
     console.error(error);
     next(error);
