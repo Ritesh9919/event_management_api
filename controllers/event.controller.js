@@ -38,6 +38,10 @@ export const createEvent = async (req, res, next) => {
 
 export const getEventDetails = async (req, res, next) => {
   try {
+    const events = await Event.find({}).populate("registrations");
+    return res
+      .status(200)
+      .json(new ApiResponse(true, { events }, "Events fetched successfully"));
   } catch (error) {
     console.error(error);
     next(error);
