@@ -73,6 +73,12 @@ export const registerForEvent = async (req, res, next) => {
       userId = user._id;
     }
 
+    // if event is passed
+    const todayDate = new Date();
+    if (new Date(event.dateTime) < todayDate) {
+      return next(new ApiError(400, "Event is passed, You can't register"));
+    }
+
     // if user is already registered
     if (event.registrations.includes(userId)) {
       return next(new ApiError(400, "User already registered"));
@@ -95,6 +101,29 @@ export const registerForEvent = async (req, res, next) => {
 
 export const cancelRegistration = async (req, res, next) => {
   try {
+    const { eventId, userId } = req.query;
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return next(new ApiError(404, "Event not found"));
+    }
+
+    // if event is passed
+    const todayDate = new Date();
+    if (new Date(event.dateTime) < todayDate) {
+      return next(new ApiError(400, "Event is passed, You can't cancel"));
+    }
+
+    // checking if user is registered
+    const index = event.registrations.findIndex((id) => id.equals(userId));
+    if (index === -1) {
+      return next(new ApiError(400, "User is not registered for event"));
+    }
+
+    event.registrations.splice(index, 1);
+    await event.save();
+    return res
+      .status(200)
+      .json(new ApiResponse(true, {}, "User registration canceled for event"));
   } catch (error) {
     console.error(error);
     next(error);
@@ -110,6 +139,7 @@ export const listUpcomingEvent = async (req, res, next) => {
         "location.city": 1,
         "location.country": 1,
       })
+      .select("-__v")
       .lean();
     if (!upcomingEvents.length) {
       return next(new ApiError(404, "No upcoming event found"));
@@ -132,6 +162,28 @@ export const listUpcomingEvent = async (req, res, next) => {
 
 export const getEventStats = async (req, res, next) => {
   try {
+    const { eventId } = req.params;
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return next(new ApiError(404, "Event not found"));
+    }
+
+    const totalRegistration = event.registrations.length;
+    const remainingCapicity = event.capacity - totalRegistration;
+    const percentageOfCapicityUsed = (totalRegistration / event.capacity) * 100;
+
+    return res.status(200).json(
+      new ApiResponse(
+        true,
+        {
+          totalRegistration,
+          remainingCapicity,
+          percentageOfCapicityUsed: `${percentageOfCapicityUsed}%`,
+          capacity: event.capacity,
+        },
+        "Event stat fetched"
+      )
+    );
   } catch (error) {
     console.error(error);
     next(error);
