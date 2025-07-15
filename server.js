@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import connectDB from "./config/db.js";
+import errorHandlerMiddleware from "./middleware/errorHandler.middleware.js";
 
 // app config
 const app = express();
@@ -14,6 +15,8 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is working");
 });
+
+app.use(errorHandlerMiddleware);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port:${PORT}`);
